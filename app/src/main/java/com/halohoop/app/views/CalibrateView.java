@@ -16,10 +16,8 @@ import java.util.List;
  */
 public class CalibrateView extends View {
 
-    private float mEveryStepAngle;
     private int mMeasuredWidth;
     private int mMeasuredHeight;
-    private int mEveryStepCount;
     private PointF mMiddlePointF;
     private Paint mPaint;
     private float mPlateBottomRadius;
@@ -28,6 +26,9 @@ public class CalibrateView extends View {
     private float mPlateMiddleOffsetFromMiddle;
     private float mPlateTopRadius;
     private float mPlateTopOffsetFromMiddle;
+    private final float mDefaultFULLReliableValue = 60;
+    private final float mDefaultHalfReliableValue = 40;
+    private List<AngleState> mAngleStates = new ArrayList<>();
 
     public CalibrateView(Context context) {
         this(context, null);
@@ -39,27 +40,27 @@ public class CalibrateView extends View {
 
     public CalibrateView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
+        init(12, 5);
     }
 
-    private void init() {
-        mEveryStepCount = 15 * 12;
-        mEveryStepAngle = 360 / mEveryStepCount;
+    private void init(int plateStepCount, int stepsInPlateStepCount) {
+        int everyStepCount = stepsInPlateStepCount * plateStepCount;
+        float everyStepAngle = 360f / everyStepCount;
         //init every angle state to be uncalibrated
-        for (int i = 0; i < mEveryStepCount; i++) {
+        for (int i = 0; i < everyStepCount; i++) {
             if (i == 0) {
                 mAngleStates.add(new AngleState(State.NONE, 0));
                 continue;
             }
             mAngleStates.add(new AngleState(State.NONE,
-                    mAngleStates.get(mAngleStates.size() - 1).mAngle + mEveryStepAngle));
+                    mAngleStates.get(mAngleStates.size() - 1).mAngle + everyStepAngle));
         }
-        mPlateBottomRadius = 150;
-        mPlateBottomOffsetFromMiddle = 100;
-        mPlateMiddleRadius = 200;
-        mPlateMiddleOffsetFromMiddle = 150;
-        mPlateTopRadius = 250;
-        mPlateTopOffsetFromMiddle = 200;
+        mPlateBottomRadius = 300;
+        mPlateBottomOffsetFromMiddle = 250;
+        mPlateMiddleRadius = 275;
+        mPlateMiddleOffsetFromMiddle = 250;
+        mPlateTopRadius = 300;
+        mPlateTopOffsetFromMiddle = 250;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setColor(Color.WHITE);
     }
@@ -77,7 +78,28 @@ public class CalibrateView extends View {
         }
     }
 
-    private List<AngleState> mAngleStates = new ArrayList<>();
+    public void setReliableValue(float reliableValue, float angle) {
+        int index = Math.round(angle);
+        int tmpIndex = index;
+        while (tmpIndex % 6 != 0) {
+            tmpIndex++;
+            if (tmpIndex >= mAngleStates.size()) break;
+        }
+        index = tmpIndex / 6;
+        if (index >= mAngleStates.size()) {
+            return;
+        }
+        AngleState angleState = mAngleStates.get(index);
+        if (reliableValue >= mDefaultHalfReliableValue
+                && reliableValue < mDefaultFULLReliableValue) {
+            angleState.mState = State.HALF;
+        } else if (reliableValue >= mDefaultFULLReliableValue) {
+            angleState.mState = State.FULL;
+        } else {
+            angleState.mState = State.NONE;
+        }
+        invalidate();
+    }
 
     private class AngleState {
         State mState = State.NONE;
@@ -89,40 +111,49 @@ public class CalibrateView extends View {
         }
     }
 
+    /**
+     * 当传感器精度是
+     * SENSOR_STATUS_NO_CONTACT或者SENSOR_STATUS_UNRELIABLE
+     * 是NONE
+     */
     public enum State {
-        NONE, HALF, DONE
+        NONE, HALF, FULL
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        //draw the bottom plate
-        canvas.save();
-        mPaint.setColor(Color.WHITE);
-        for (int i = 0; i < mEveryStepCount; i++) {
-            canvas.rotate(mEveryStepAngle, mMiddlePointF.x, mMiddlePointF.y);
+        for (int i = 0; i < mAngleStates.size(); i++) {
+            canvas.save();
+            mPaint.setStrokeWidth(1);
+            mPaint.setColor(Color.WHITE);
+            AngleState angleState = mAngleStates.get(i);
+            canvas.rotate(angleState.mAngle, mMiddlePointF.x, mMiddlePointF.y);
             canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateBottomOffsetFromMiddle,
                     mMiddlePointF.x, mMiddlePointF.y - mPlateBottomRadius, mPaint);
+            canvas.restore();
         }
-        canvas.restore();
-        //draw the middle plate
-        canvas.save();
-        mPaint.setColor(Color.RED);
-        for (int i = 0; i < mEveryStepCount; i++) {
-            canvas.rotate(mEveryStepAngle, mMiddlePointF.x, mMiddlePointF.y);
-            canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateMiddleOffsetFromMiddle,
-                    mMiddlePointF.x, mMiddlePointF.y - mPlateMiddleRadius, mPaint);
+        for (int i = 0; i < mAngleStates.size(); i++) {
+            canvas.save();
+            AngleState angleState = mAngleStates.get(i);
+            canvas.rotate(angleState.mAngle, mMiddlePointF.x, mMiddlePointF.y);
+//            if (angleState.mState == State.NONE) {
+//                mPaint.setColor(Color.WHITE);
+//                canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateBottomOffsetFromMiddle,
+//                        mMiddlePointF.x, mMiddlePointF.y - mPlateBottomRadius, mPaint);
+//            } else
+            mPaint.setStrokeWidth(5);
+            if (angleState.mState == State.HALF) {
+                mPaint.setColor(Color.RED);
+                canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateMiddleOffsetFromMiddle,
+                        mMiddlePointF.x, mMiddlePointF.y - mPlateMiddleRadius, mPaint);
+            } else if (angleState.mState == State.FULL) {
+                mPaint.setColor(Color.GREEN);
+                canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateTopOffsetFromMiddle,
+                        mMiddlePointF.x, mMiddlePointF.y - mPlateTopRadius, mPaint);
+            }
+            canvas.restore();
         }
-        canvas.restore();
-        //draw the top plate
-        canvas.save();
-        mPaint.setColor(Color.GREEN);
-        for (int i = 0; i < mEveryStepCount; i++) {
-            canvas.rotate(mEveryStepAngle, mMiddlePointF.x, mMiddlePointF.y);
-            canvas.drawLine(mMiddlePointF.x, mMiddlePointF.y - mPlateTopOffsetFromMiddle,
-                    mMiddlePointF.x, mMiddlePointF.y - mPlateTopRadius, mPaint);
-        }
-        canvas.restore();
 
     }
 

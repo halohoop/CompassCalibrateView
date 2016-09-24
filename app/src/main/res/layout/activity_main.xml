@@ -3,14 +3,32 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.halohoop.app.MainActivity">
 
     <com.halohoop.app.views.CalibrateView
+        android:id="@+id/cv"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+        <SeekBar
+            android:id="@+id/sb_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:max="100" />
+
+        <SeekBar
+            android:id="@+id/sb_angle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:max="360" />
+
+    </LinearLayout>
+
 </RelativeLayout>
