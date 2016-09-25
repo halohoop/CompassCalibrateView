@@ -26,9 +26,20 @@ public class CalibrateView extends View {
     private float mPlateMiddleOffsetFromMiddle;
     private float mPlateTopRadius;
     private float mPlateTopOffsetFromMiddle;
-    private final float mDefaultFULLReliableValue = 60;
-    private final float mDefaultHalfReliableValue = 40;
+    private final float mDefaultFULLReliableValue = 80;
+    private final float mDefaultHalfReliableValue = 85;
     private List<AngleState> mAngleStates = new ArrayList<>();
+    private float mAngle = 0;
+    private int mBallRadius = 15;
+    private int ballOffsetFromMiddlePoint = 243;
+
+    public float getDefaultFULLReliableValue() {
+        return mDefaultFULLReliableValue;
+    }
+
+    public float getDefaultHalfReliableValue() {
+        return mDefaultHalfReliableValue;
+    }
 
     public CalibrateView(Context context) {
         this(context, null);
@@ -56,12 +67,13 @@ public class CalibrateView extends View {
                     mAngleStates.get(mAngleStates.size() - 1).mAngle + everyStepAngle));
         }
         mPlateBottomRadius = 300;
-        mPlateBottomOffsetFromMiddle = 250;
-        mPlateMiddleRadius = 275;
-        mPlateMiddleOffsetFromMiddle = 250;
+        mPlateBottomOffsetFromMiddle = 260;
+        mPlateMiddleRadius = 280;
+        mPlateMiddleOffsetFromMiddle = 260;
         mPlateTopRadius = 300;
-        mPlateTopOffsetFromMiddle = 250;
+        mPlateTopOffsetFromMiddle = 260;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
         mPaint.setColor(Color.WHITE);
     }
 
@@ -79,6 +91,7 @@ public class CalibrateView extends View {
     }
 
     public void setReliableValue(float reliableValue, float angle) {
+        this.mAngle = angle;
         int index = Math.round(angle);
         int tmpIndex = index;
         while (tmpIndex % 6 != 0) {
@@ -90,10 +103,10 @@ public class CalibrateView extends View {
             return;
         }
         AngleState angleState = mAngleStates.get(index);
-        if (reliableValue >= mDefaultHalfReliableValue
-                && reliableValue < mDefaultFULLReliableValue) {
+        if (reliableValue <= mDefaultHalfReliableValue
+                && reliableValue > mDefaultFULLReliableValue) {
             angleState.mState = State.HALF;
-        } else if (reliableValue >= mDefaultFULLReliableValue) {
+        } else if (reliableValue <= mDefaultFULLReliableValue) {
             angleState.mState = State.FULL;
         } else {
             angleState.mState = State.NONE;
@@ -154,8 +167,12 @@ public class CalibrateView extends View {
             }
             canvas.restore();
         }
-
+        //画小球
+        canvas.save();
+        mPaint.setColor(Color.YELLOW);
+        canvas.rotate(mAngle, mMiddlePointF.x, mMiddlePointF.y);
+        canvas.drawCircle(mMiddlePointF.x, mMiddlePointF.y - ballOffsetFromMiddlePoint, mBallRadius, mPaint);
+        canvas.restore();
     }
-
 
 }
