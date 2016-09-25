@@ -8,13 +8,11 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.SeekBar;
 
 import com.halohoop.app.views.CalibrateView;
 
 public class MainActivity extends AppCompatActivity
-        implements SeekBar.OnSeekBarChangeListener,
-        SensorEventListener {
+        implements SensorEventListener {
 
     private CalibrateView mCv;
     private float mAngle;
@@ -27,10 +25,6 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mCv = (CalibrateView) findViewById(R.id.cv);
-        SeekBar mSbState = (SeekBar) findViewById(R.id.sb_state);
-        SeekBar mSbAngle = (SeekBar) findViewById(R.id.sb_angle);
-        mSbState.setOnSeekBarChangeListener(this);
-        mSbAngle.setOnSeekBarChangeListener(this);
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         gravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
     }
@@ -48,33 +42,11 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if (seekBar.getId() == R.id.sb_state) {
-            mProgress = progress;
-            Log.i("huanghaiqi", "huanghaiqi:mProgress:" + mProgress);
-        } else if (seekBar.getId() == R.id.sb_angle) {
-            mAngle = progress;
-            Log.i("huanghaiqi", "huanghaiqi:mAngle:" + mAngle);
-        }
-        mCv.setReliableValue(mProgress, mAngle);
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
     public void onSensorChanged(SensorEvent event) {
         handleSensorData(event.values);
     }
 
-    private float mFullDistance = 98 * 2;
+    private float mFullDistance = 98 * 2;//gravity 9.8 * 10 * 2
 
     private void handleSensorData(float[] values) {
         int x = Math.round(values[0] * 10);
@@ -95,7 +67,9 @@ public class MainActivity extends AppCompatActivity
                     finalAngleDeltaFromXRight = 360 + finalAngleDeltaFromXRight;
                 }
                 Log.i("huanghaiqi", "finalAngleDeltaFromXRight:" + finalAngleDeltaFromXRight);
-                finalAngleDeltaFromXRight = lowPass2(finalAngleDeltaFromXRight, mLastFinalAngleDeltaFromXRight);
+                if (mCv.isCalibrateStart()) {
+                    finalAngleDeltaFromXRight = lowPass2(finalAngleDeltaFromXRight, mLastFinalAngleDeltaFromXRight);
+                }
                 mLastFinalAngleDeltaFromXRight = finalAngleDeltaFromXRight;
                 mCv.setReliableValue(z, finalAngleDeltaFromXRight);
             } else {
@@ -107,11 +81,14 @@ public class MainActivity extends AppCompatActivity
                 //从x轴右边，逆时针需要旋转的角度
                 float finalAngleDeltaFromXRight = 90 + angleDeltaFromXRight;
                 Log.i("huanghaiqi", "finalAngleDeltaFromXRight:" + finalAngleDeltaFromXRight);
-                finalAngleDeltaFromXRight = lowPass2(finalAngleDeltaFromXRight, mLastFinalAngleDeltaFromXRight);
+                if (mCv.isCalibrateStart()) {
+                    finalAngleDeltaFromXRight = lowPass2(finalAngleDeltaFromXRight, mLastFinalAngleDeltaFromXRight);
+                }
                 mLastFinalAngleDeltaFromXRight = finalAngleDeltaFromXRight;
 
                 mCv.setReliableValue(z, finalAngleDeltaFromXRight);
             }
+            mCv.setIsCalibrateStart(true);
         }
     }
 
@@ -139,7 +116,7 @@ public class MainActivity extends AppCompatActivity
                 float lowPassDistanceFromLeft = tmpLowPass - left;
                 if (distanceFrom0 >= lowPassDistanceFromLeft) {
                     return last - lowPassDistanceFromLeft;
-                }else{
+                } else {
                     return 360 - (lowPassDistanceFromLeft - distanceFrom0);
                 }
             } else if (current < last) {//last-->360    current-->0
@@ -150,7 +127,7 @@ public class MainActivity extends AppCompatActivity
                 float lowPassDistanceFromLeft = tmpLowPass - left;
                 if (distanceFrom0 >= lowPassDistanceFromLeft) {
                     return current - lowPassDistanceFromLeft;
-                }else{
+                } else {
                     return 360 - (lowPassDistanceFromLeft - distanceFrom0);
                 }
             }
