@@ -2,6 +2,9 @@
 
 ### The custom view CalibrateView of a compass；指南针校准时候的自定义控件；
 
+### Final Result
+![Final Result](device-2016-09-25-115539.gif)
+
 #Usage 
 
 	com.halohoop.app.views.CalibrateView
