@@ -10,6 +10,9 @@ import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Created by halohoop on 16-9-24.
@@ -33,6 +36,7 @@ public class CalibrateView extends View {
     private int mBallRadius;
     private int ballOffsetFromMiddlePoint;
     private boolean mIsCalibrateStart;
+    private ExecutorService mExecutorService;
 
     public float getDefaultFULLReliableValue() {
         return mDefaultFULLReliableValue;
@@ -81,6 +85,43 @@ public class CalibrateView extends View {
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setStrokeCap(Paint.Cap.ROUND);
         mPaint.setColor(Color.WHITE);
+
+        mExecutorService = Executors.newFixedThreadPool(1);
+    }
+
+    private Runnable mTask = new Runnable() {
+        @Override
+        public void run() {
+            int mFullCount = 0;
+            for (int i = 0; i < mAngleStates.size(); i++) {
+                AngleState angleState = mAngleStates.get(i);
+                if (angleState.mState == State.FULL) {
+                    mFullCount++;
+                }
+            }
+            if (mFullCount == mAngleStates.size()) {
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mOnFinishCallback != null) {
+                            mOnFinishCallback.onFinish();
+                        }
+                    }
+                });
+                mExecutorService.shutdown();
+            }
+        }
+    };
+
+
+    public void setOnFinishCallback(OnFinishCallback onFinishCallback) {
+        this.mOnFinishCallback = onFinishCallback;
+    }
+
+    private OnFinishCallback mOnFinishCallback;
+
+    public static interface OnFinishCallback {
+        void onFinish();
     }
 
     @Override
@@ -122,6 +163,11 @@ public class CalibrateView extends View {
             //eat it, because already in full state
         }
         invalidate();
+        try {
+            mExecutorService.execute(mTask);
+        } catch (RejectedExecutionException ree) {
+        }
+
     }
 
     public void setIsCalibrateStart(boolean isCalibrateStart) {

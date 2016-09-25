@@ -8,11 +8,12 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.halohoop.app.views.CalibrateView;
 
 public class MainActivity extends AppCompatActivity
-        implements SensorEventListener {
+        implements SensorEventListener, CalibrateView.OnFinishCallback {
 
     private CalibrateView mCv;
     private float mAngle;
@@ -25,6 +26,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mCv = (CalibrateView) findViewById(R.id.cv);
+        mCv.setOnFinishCallback(this);
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         gravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
     }
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
     private float mLastFinalAngleDeltaFromXRight = 0;
 
     /**
@@ -154,5 +157,10 @@ public class MainActivity extends AppCompatActivity
                 Log.i("huanghaiqi", "accuracy:UNRELIABLE");
                 break;
         }
+    }
+
+    @Override
+    public void onFinish() {
+        Toast.makeText(MainActivity.this, "Finish", Toast.LENGTH_SHORT).show();
     }
 }
